@@ -1,0 +1,194 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pase de lista – Neural Apps</title>
+<style>
+  :root{{--prim:#111;--acc:#e53935;--borde:#e5e7eb;}}
+  *{{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial}}
+  body{{margin:0;background:#fff;color:#111}}
+  header{{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid var(--borde);}}
+  .bar{{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;justify-content:space-between;padding:.75rem 1rem}}
+  .title{{font-weight:700}}
+  .btn{{padding:.5rem .75rem;border:1px solid var(--borde);border-radius:.6rem;background:#fff;cursor:pointer}}
+  .btn.primary{{background:var(--acc);color:#fff;border-color:var(--acc)}}
+  .wrap{{max-width:1100px;margin:1rem auto;padding:0 1rem}}
+  table{{width:100%;border-collapse:collapse}}
+  th,td{{border:1px solid var(--borde);padding:.5rem;text-align:left;font-size:.95rem}}
+  th{{background:#f8fafc;position:sticky;top:56px;z-index:1}}
+  tr:hover td{{background:#fff7f7}}
+  .controls{{display:flex;gap:.5rem;flex-wrap:wrap;margin:.75rem 0}}
+  input[type="text"],input[type="date"]{{padding:.5rem;border:1px solid var(--borde);border-radius:.5rem;min-width:10rem}}
+  .pill{{padding:.2rem .5rem;border:1px solid var(--borde);border-radius:999px;font-size:.85rem}}
+  .muted{{opacity:.7}}
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="title">Pase de lista</div>
+    <div>
+      <button id="btnExport" class="btn">Exportar CSV</button>
+      <label class="btn">
+        Importar CSV
+        <input id="fileCsv" type="file" accept=".csv" style="display:none">
+      </label>
+      <button id="btnReset" class="btn">Borrar todo</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="controls">
+    <input id="buscar" type="text" placeholder="Buscar por nombre o KA">
+    <input id="nuevoNombre" type="text" placeholder="Nombre">
+    <input id="nuevoKA" type="text" placeholder="KA / Empresa">
+    <button id="btnAgregar" class="btn primary">Agregar pasajero</button>
+    <span class="pill muted">Tip: todo se guarda en tu navegador (localStorage)</span>
+  </div>
+
+  <div class="controls">
+    <input id="nuevaFecha" type="date">
+    <button id="btnAddFecha" class="btn">Agregar columna de fecha</button>
+  </div>
+
+  <table id="tabla">
+    <thead><tr id="theadRow"></tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+<script>
+const key = "pase_lista_v1";
+
+const defaultDates = ["10 – Viernes","28 – Sábado","29 – Domingo"];
+
+function loadState(){{
+  const saved = localStorage.getItem(key);
+  if(saved){{ return JSON.parse(saved); }}
+  const base = [{"Nombre": "Juan Carlos Macías", "KA": "7‑Eleven", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "Daniel Zaldívar", "KA": "7‑Eleven", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "Mariano Onofre", "KA": "7‑Eleven", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "Javier Escobar", "KA": "7‑Eleven", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "Luis Aguilar", "KA": "SIX", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "Israel Rodríguez", "KA": "SIX", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "Carlos Kalach", "KA": "CCK", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "Anabel García", "KA": "PMM", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "Christian Delgado Vera", "KA": "ZD Apoya", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "Guillermo Ibarra Ramírez", "KA": "Zárraga, BT Izca", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "Benito Alberto Zaragoza", "KA": "Zárraga, BT Izca", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "Edgar H. Maldonado Morfín", "KA": "SODISA", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "Alma Justine Núñez Santana", "KA": "JYM", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "Marco Antonio Guerrero Lorenzana", "KA": "JYM", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "Javier Sánchez Leyva", "KA": "DANA", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "Daniel Sánchez González", "KA": "DANA", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "Juan Sebastián Jaramillo", "KA": "PARI", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "César Barrera", "KA": "Zárraga, BT Izca", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "José Espinosa", "KA": "SODISA", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "Alex Rizo", "KA": "ZD", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "Miguel Cruz", "KA": "DANA", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "José David Ayala Muñiz", "KA": "Distribución Zonificada", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "Humberto de Jesús Pérez Rueda", "KA": "Distribuciones Legil", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "Jorge Juaristi", "KA": "CDG", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "Emmanuel Blanco", "KA": "PMM", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "Emilio Bojórquez", "KA": "PMM", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "Dan Elman", "KA": "Fibra Uno", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "Héctor Muñoz", "KA": "Sordo Madaleno", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "Gerardo Ahumada", "KA": "PMM", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "Éric Schultness", "KA": "PMM", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "Sandra Martínez", "KA": "", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "Elia Leonor Abreu Vela", "KA": "SIX (+1)", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "Michel Rafael Kalach Balas", "KA": "CCK", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "Julio César Veliz Martínez", "KA": "SIX", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "Daniela Moreno", "KA": "Rappi", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}, {"Nombre": "Andrés Felipe Palacio Calle", "KA": "Rappi", "10_Viernes": "", "28_Sábado": "", "29_Domingo": "", "Notas": ""}];
+  return {{dates: defaultDates, rows: base}};
+}}
+
+let state = loadState();
+
+function save(){{ localStorage.setItem(key, JSON.stringify(state)); }}
+
+function render(){{
+  const thead = document.getElementById("theadRow");
+  thead.innerHTML = "";
+  const cols = ["#", "Nombre", "KA", ...state.dates, "Notas", ""];
+  cols.forEach(c=>{{
+    const th = document.createElement("th"); th.textContent = c; thead.appendChild(th);
+  }});
+
+  const q = document.getElementById("buscar").value.toLowerCase();
+  const tbody = document.getElementById("tbody");
+  tbody.innerHTML = "";
+  state.rows.forEach((row, i)=>{{
+    if(q && !(row.Nombre.toLowerCase().includes(q) || (row.KA||"").toLowerCase().includes(q))) return;
+    const tr = document.createElement("tr");
+    let td = document.createElement("td"); td.textContent = i+1; tr.appendChild(td);
+    td = document.createElement("td");
+    const inNom = document.createElement("input"); inNom.type="text"; inNom.value=row.Nombre||"";
+    inNom.onchange = e=>{{ row.Nombre = e.target.value; save(); }};
+    td.appendChild(inNom); tr.appendChild(td);
+    td = document.createElement("td");
+    const inKA = document.createElement("input"); inKA.type="text"; inKA.value=row.KA||"";
+    inKA.onchange = e=>{{ row.KA = e.target.value; save(); }};
+    td.appendChild(inKA); tr.appendChild(td);
+    state.dates.forEach(fecha=>{{
+      td = document.createElement("td");
+      const chk = document.createElement("input"); chk.type="checkbox";
+      chk.checked = !!(row[fecha]);
+      chk.onchange = e=>{{ row[fecha] = e.target.checked ? 1 : ""; save(); }};
+      td.appendChild(chk);
+      tr.appendChild(td);
+    }});
+    td = document.createElement("td");
+    const inNotas = document.createElement("input"); inNotas.type="text"; inNotas.value=row.Notas||"";
+    inNotas.onchange = e=>{{ row.Notas = e.target.value; save(); }};
+    td.appendChild(inNotas); tr.appendChild(td);
+    td = document.createElement("td");
+    const del = document.createElement("button"); del.className="btn"; del.textContent="Eliminar";
+    del.onclick = ()=>{{ state.rows.splice(i,1); save(); render(); }};
+    td.appendChild(del); tr.appendChild(td);
+    tbody.appendChild(tr);
+  }});
+}}
+
+document.getElementById("btnAgregar").onclick = ()=>{{
+  const n = document.getElementById("nuevoNombre").value.trim();
+  const k = document.getElementById("nuevoKA").value.trim();
+  if(!n) return;
+  const r = {{Nombre:n, KA:k, Notas:""}};
+  state.dates.forEach(d=> r[d] = "");
+  state.rows.push(r);
+  document.getElementById("nuevoNombre").value = "";
+  document.getElementById("nuevoKA").value = "";
+  save(); render();
+}};
+
+document.getElementById("btnAddFecha").onclick = ()=>{{
+  const v = document.getElementById("nuevaFecha").value;
+  const label = v ? new Date(v).toLocaleDateString("es-MX",{{day:"2-digit",month:"2-digit"}}) : prompt("Etiqueta de fecha (ej. 30 – Lunes)");
+  if(!label) return;
+  if(!state.dates.includes(label)) state.dates.push(label);
+  state.rows.forEach(r=>{{ if(!(label in r)) r[label] = ""; }});
+  save(); render();
+}};
+
+document.getElementById("buscar").oninput = render;
+
+document.getElementById("btnReset").onclick = ()=>{{
+  if(confirm("¿Borrar todo y empezar de cero?")){{ localStorage.removeItem(key); state = loadState(); render(); }}
+}};
+
+function toCSV(){{
+  const headers = ["Nombre","KA",...state.dates,"Notas"];
+  const lines = [headers.join(",")];
+  state.rows.forEach(r=>{{
+    const vals = [r.Nombre||"", r.KA||"", ...state.dates.map(d=> r[d] ? "1" : ""), r.Notas||""];
+    const esc = vals.map(v => `"`+String(v).replaceAll('"','""')+`"`);
+    lines.push(esc.join(","));
+  }});
+  return lines.join("\\n");
+}}
+
+document.getElementById("btnExport").onclick = ()=>{{
+  const blob = new Blob([toCSV()],{{type:"text/csv;charset=utf-8;"}});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "pase_lista.csv";
+  a.click();
+}};
+
+document.getElementById("fileCsv").onchange = (e)=>{{
+  const f = e.target.files[0]; if(!f) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{{
+    const text = reader.result;
+    const lines = text.split(/\\r?\\n/).filter(x=>x.trim().length);
+    const headers = lines[0].split(",").map(h=>h.replaceAll('"','').trim());
+    const fixed = ["Nombre","KA","Notas"];
+    state.dates = headers.filter(h=> !fixed.includes(h));
+    state.rows = lines.slice(1).map(line=>{{
+      const cols = line.match(/("([^"]|"")*"|[^,]*)/g).filter((_,i)=> i<headers.length).map(c=>c.replace(/^"|"$/g,"").replaceAll('""','"'));
+      const obj = {{};
+      headers.forEach((h,idx)=>{{
+        if(h==="Nombre"||h==="KA"||h==="Notas"){{ obj[h]=cols[idx]||""; }}
+        else {{ obj[h] = cols[idx] ? 1 : ""; }}
+      }});
+      return obj;
+    }});
+    save(); render();
+  }};
+  reader.readAsText(f,"utf-8");
+}};
+
+render();
+</script>
+</body>
+</html>
